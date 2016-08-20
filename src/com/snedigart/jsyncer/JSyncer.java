@@ -27,11 +27,11 @@ public class JSyncer extends Application {
     public void start(Stage primaryStage) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/layout.fxml"));
-            VBox root = (VBox) loader.load();
+            VBox root = loader.load();
             Scene scene = new Scene(root);
             scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
-            controller = loader.<JSyncerController> getController();
+            controller = loader.getController();
             controller.initialize();
 
             primaryStage.setMinWidth(root.getMinWidth());

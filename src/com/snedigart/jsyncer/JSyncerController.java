@@ -13,32 +13,24 @@
  */
 package com.snedigart.jsyncer;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import com.snedigart.jsync.SyncOptions;
 import com.snedigart.jsync.SyncOptions.SyncOptionsBuilder;
 import com.snedigart.jsync.Syncer;
-
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextField;
-import javafx.scene.control.TitledPane;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class JSyncerController {
     @FXML
@@ -95,7 +87,7 @@ public class JSyncerController {
 
     private final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
 
-    public void initialize() {
+    void initialize() {
         initChunkSizeMap();
         configureButtons();
         configureTextFields();
@@ -130,16 +122,14 @@ public class JSyncerController {
                     final File src = new File(sourceTextField.getText().trim());
                     final File tgt = new File(targetTextField.getText().trim());
                     Syncer syncer = new Syncer(src, tgt, opts);
-                    syncer.synchronize((r, t, m) -> {
-                        Platform.runLater(() -> {
-                            // TODO: 0 of 0
-                            progressLabel.setText((t - r) + " of " + t);
-                            messageLabel.setText(m);
-                            if (t != 0) {
-                                progressBar.setProgress((((double) t - (double) r) / (double) t));
-                            }
-                        });
-                    });
+                    syncer.synchronize((r, t, m) -> Platform.runLater(() -> {
+                        // TODO: 0 of 0
+                        progressLabel.setText((t - r) + " of " + t);
+                        messageLabel.setText(m);
+                        if (t != 0) {
+                            progressBar.setProgress((((double) t - (double) r) / (double) t));
+                        }
+                    }));
                 } catch (IOException x) {
                     // TODO:
                     x.printStackTrace();
@@ -161,12 +151,7 @@ public class JSyncerController {
 
     private void configureChoiceBox() {
         ObservableList<String> items = FXCollections.observableArrayList(chunkSizeMap.keySet());
-        items.sort(new Comparator<String>() {
-            @Override
-            public int compare(String s1, String s2) {
-                return (Long.compare(chunkSizeMap.get(s1), chunkSizeMap.get(s2)) * -1);
-            }
-        });
+        items.sort((s1, s2) -> (Long.compare(chunkSizeMap.get(s1), chunkSizeMap.get(s2)) * -1));
         chunkSizeChoiceBox.setStyle("-fx-font-size: 11.0");
         chunkSizeChoiceBox.setItems(items);
         chunkSizeChoiceBox.getSelectionModel().selectFirst();
@@ -189,7 +174,7 @@ public class JSyncerController {
         }
     }
 
-    public void onExit() {
+    void onExit() {
         threadExecutor.shutdownNow();
     }
 }
