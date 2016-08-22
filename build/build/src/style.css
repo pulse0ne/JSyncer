@@ -1,1 +1,15 @@
-/* JavaFX CSS - Leave this comment until you have at least create one rule which uses -fx-Property */
+.fontawesome {
+    -fx-font-family: FontAwesome;
+    -fx-font-size: 15.0px;
+    -fx-text-fill: red;
+}
+
+.fontawesome:hover {
+    -fx-text-fill: derive(red, -50%);
+}
+
+.fontawesome-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0.0;
+}

@@ -15,15 +15,24 @@ package com.snedigart.jsyncer;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import com.snedigart.jsync.SyncOptions;
 import com.snedigart.jsync.SyncOptions.SyncOptionsBuilder;
+import com.snedigart.jsync.SyncResults;
 import com.snedigart.jsync.Syncer;
+import com.snedigart.jsync.filter.SyncFilter;
+import com.snedigart.jsyncer.filter.FileExtensionFilterField;
+import com.snedigart.jsyncer.filter.FileSizeFilterField;
+import com.snedigart.jsyncer.filter.FilenameFilterField;
+import com.snedigart.jsyncer.filter.FilterField;
+import com.snedigart.jsyncer.filter.LastModifiedFilterField;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -33,12 +42,15 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
 
 public class JSyncerController {
     @FXML
@@ -72,6 +84,33 @@ public class JSyncerController {
     private ChoiceBox<String> chunkSizeChoiceBox;
 
     @FXML
+    private TitledPane filtersTitledPane;
+
+    @FXML
+    private VBox filtersVBox;
+
+    @FXML
+    private MenuButton addFilterMenuButton;
+
+    @FXML
+    private MenuItem filenameMenuItem;
+
+    @FXML
+    private MenuItem extensionMenuItem;
+
+    @FXML
+    private MenuItem sizeMenuItem;
+
+    @FXML
+    private MenuItem lastModifiedMenuItem;
+
+    @FXML
+    private ChoiceBox<String> includeChoiceBox;
+
+    @FXML
+    private ChoiceBox<String> excludeChoiceBox;
+
+    @FXML
     private ProgressBar progressBar;
 
     @FXML
@@ -83,6 +122,9 @@ public class JSyncerController {
     @FXML
     private Button syncButton;
 
+    @FXML
+    private GridPane filtersGridPane;
+
     private static final String KB = "KB";
 
     private static final String MB = "MB";
@@ -93,18 +135,21 @@ public class JSyncerController {
 
     private final Map<String, Long> chunkSizeMap = new HashMap<>();
 
-    private final ExecutorService threadExecutor = Executors.newSingleThreadExecutor();
+    private final List<FilterField> filterFields = new ArrayList<>();
 
-    public void initialize() {
+    @FXML
+    private void initialize() {
         initChunkSizeMap();
         configureButtons();
         configureTextFields();
         configureChoiceBox();
+        configureTitledPanes();
+        configureMenuItemActions();
     }
 
     private void initChunkSizeMap() {
         chunkSizeMap.clear();
-        for (int b = 32; b > 0; b /= 2) {
+        for (int b = 512; b > 0; b /= 2) {
             chunkSizeMap.put(b + MB, b * MEGABYTE);
             chunkSizeMap.put(b + KB, b * KILOBYTE);
         }
@@ -118,30 +163,39 @@ public class JSyncerController {
             final long chunkSize = chunkSizeMap.get(chunkSizeChoiceBox.getSelectionModel().getSelectedItem());
             final boolean delete = deleteUnmatchedCheckBox.isSelected();
             final boolean smartCopy = smartCopyCheckBox.isSelected();
-            final SyncOptions opts = new SyncOptionsBuilder().chunkSize(chunkSize).deleteUnmatchedTargets(delete)
-                    .smartCopy(smartCopy).build();
+            final boolean matchAllIncl = includeChoiceBox.getSelectionModel().getSelectedItem().equalsIgnoreCase("All");
+            final boolean matchAllExcl = excludeChoiceBox.getSelectionModel().getSelectedItem().equalsIgnoreCase("All");
+            final List<SyncFilter> includeFilters = collectFilters(f -> f.isInclusive());
+            final List<SyncFilter> excludeFilters = collectFilters(f -> !f.isInclusive());
+
+            final SyncOptions opts;
+            final SyncOptionsBuilder builder = new SyncOptionsBuilder();
+            builder.chunkSize(chunkSize).deleteUnmatchedTargets(delete).smartCopy(smartCopy);
+            builder.setInclusionFilters(includeFilters).setExclusionFilters(excludeFilters);
+            builder.matchAllInclusionFilters(matchAllIncl).matchAllExclusionFilters(matchAllExcl);
+
+            opts = builder.build();
 
             fileGridPane.setDisable(true);
             optionsTitledPane.setDisable(true);
             syncButton.setDisable(true);
 
-            threadExecutor.submit(() -> {
+            ThreadManager.getInstance().submitJob(() -> {
                 try {
                     final File src = new File(sourceTextField.getText().trim());
                     final File tgt = new File(targetTextField.getText().trim());
-                    Syncer syncer = new Syncer(src, tgt, opts);
-                    syncer.synchronize((r, t, m) -> {
-                        Platform.runLater(() -> {
-                            // TODO: 0 of 0
-                            progressLabel.setText((t - r) + " of " + t);
-                            messageLabel.setText(m);
-                            if (t != 0) {
-                                progressBar.setProgress((((double) t - (double) r) / (double) t));
-                            }
-                        });
-                    });
+                    final Syncer syncer = new Syncer(src, tgt, opts);
+                    SyncResults results = syncer.synchronize((r, t, m) -> Platform.runLater(() -> {
+                        progressLabel.setText((t - r) + " of " + t);
+                        messageLabel.setText(m);
+                        if (t != 0) {
+                            progressBar.setProgress((((double) t - (double) r) / (double) t));
+                        }
+                    }));
+
+                    System.out.println(results);
                 } catch (IOException x) {
-                    // TODO:
+                    // TODO: handle exceptions
                     x.printStackTrace();
                 }
                 Platform.runLater(() -> {
@@ -153,24 +207,79 @@ public class JSyncerController {
         });
     }
 
-    private void configureTextFields() {
-        sourceTextField.setOnAction(e -> {
+    private List<SyncFilter> collectFilters(Predicate<? super FilterField> test) {
+        return filterFields.stream().filter(test)
+                .map((Function<? super FilterField, ? extends SyncFilter>) f -> f.getFilter())
+                .collect(Collectors.toList());
+    }
 
-        });
+    private void resizeStage() {
+        ((Stage) rootVBox.getScene().getWindow()).sizeToScene();
+    }
+
+    private void configureTextFields() {
     }
 
     private void configureChoiceBox() {
         ObservableList<String> items = FXCollections.observableArrayList(chunkSizeMap.keySet());
-        items.sort(new Comparator<String>() {
-            @Override
-            public int compare(String s1, String s2) {
-                return (Long.compare(chunkSizeMap.get(s1), chunkSizeMap.get(s2)) * -1);
-            }
-        });
-        chunkSizeChoiceBox.setStyle("-fx-font-size: 11.0");
+        items.sort((s1, s2) -> (Long.compare(chunkSizeMap.get(s1), chunkSizeMap.get(s2)) * -1));
+        chunkSizeChoiceBox.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
         chunkSizeChoiceBox.setItems(items);
-        chunkSizeChoiceBox.getSelectionModel().selectFirst();
-        chunkSizeChoiceBox.getSelectionModel().selectNext();
+        chunkSizeChoiceBox.getSelectionModel().select("16MB");
+
+        ObservableList<String> includeItems = FXCollections.observableArrayList("All", "Any");
+        includeChoiceBox.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
+        includeChoiceBox.setItems(includeItems);
+        includeChoiceBox.getSelectionModel().selectFirst();
+
+        ObservableList<String> excludeItems = FXCollections.observableArrayList("All", "Any");
+        excludeChoiceBox.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
+        excludeChoiceBox.setItems(excludeItems);
+        excludeChoiceBox.getSelectionModel().selectFirst();
+    }
+
+    private void configureTitledPanes() {
+        optionsTitledPane.expandedProperty().addListener((obs, nv, ov) -> {
+            Platform.runLater(() -> resizeStage());
+        });
+
+        filtersTitledPane.expandedProperty().addListener((obs, nv, ov) -> {
+            Platform.runLater(() -> resizeStage());
+        });
+    }
+
+    private void configureMenuItemActions() {
+        addFilterMenuButton.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
+        filenameMenuItem.setOnAction(event -> {
+            addFilterField(new FilenameFilterField());
+        });
+
+        extensionMenuItem.setOnAction(event -> {
+            addFilterField(new FileExtensionFilterField());
+        });
+
+        sizeMenuItem.setOnAction(event -> {
+            addFilterField(new FileSizeFilterField());
+        });
+
+        lastModifiedMenuItem.setOnAction(event -> {
+            addFilterField(new LastModifiedFilterField());
+        });
+    }
+
+    private void addFilterField(FilterField field) {
+        field.getCloseButton().setOnAction(e -> removeFilterField(field));
+        filtersGridPane.addRow(filtersGridPane.getChildren().size(), field.getInclusiveChoiceBox(),
+                field.getInputNode(), field.getCloseButton());
+        filterFields.add(field);
+        resizeStage();
+    }
+
+    private void removeFilterField(FilterField field) {
+        filterFields.remove(field);
+        filtersGridPane.getChildren().removeAll(field.getInclusiveChoiceBox(), field.getInputNode(),
+                field.getCloseButton());
+        resizeStage();
     }
 
     private void showFileBrowser(String title, TextField field) {
@@ -187,9 +296,5 @@ public class JSyncerController {
         if (f != null) {
             field.setText(f.getAbsolutePath());
         }
-    }
-
-    public void onExit() {
-        threadExecutor.shutdownNow();
     }
 }

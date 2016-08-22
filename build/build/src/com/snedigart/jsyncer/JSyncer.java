@@ -17,25 +17,20 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 public class JSyncer extends Application {
-
-    private JSyncerController controller;
 
     @Override
     public void start(Stage primaryStage) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/layout.fxml"));
-            VBox root = (VBox) loader.load();
+            VBox root = loader.load();
             Scene scene = new Scene(root);
             scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
-            controller = loader.<JSyncerController> getController();
-            controller.initialize();
-
-            primaryStage.setMinWidth(root.getMinWidth());
-            primaryStage.setMinHeight(root.getMinHeight());
+            Font.loadFont(getClass().getResource("/fa.ttf").toExternalForm(), 11.0);
 
             primaryStage.setScene(scene);
             primaryStage.setTitle("JSyncer");
@@ -47,9 +42,7 @@ public class JSyncer extends Application {
 
     @Override
     public void stop() {
-        if (controller != null) {
-            controller.onExit();
-        }
+        ThreadManager.getInstance().shutdown();
     }
 
     public static void main(String[] args) {
