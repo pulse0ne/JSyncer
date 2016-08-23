@@ -239,32 +239,16 @@ public class JSyncerController {
     }
 
     private void configureTitledPanes() {
-        optionsTitledPane.expandedProperty().addListener((obs, nv, ov) -> {
-            Platform.runLater(() -> resizeStage());
-        });
-
-        filtersTitledPane.expandedProperty().addListener((obs, nv, ov) -> {
-            Platform.runLater(() -> resizeStage());
-        });
+        optionsTitledPane.expandedProperty().addListener((obs, nv, ov) -> Platform.runLater(() -> resizeStage()));
+        filtersTitledPane.expandedProperty().addListener((obs, nv, ov) -> Platform.runLater(() -> resizeStage()));
     }
 
     private void configureMenuItemActions() {
         addFilterMenuButton.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
-        filenameMenuItem.setOnAction(event -> {
-            addFilterField(new FilenameFilterField());
-        });
-
-        extensionMenuItem.setOnAction(event -> {
-            addFilterField(new FileExtensionFilterField());
-        });
-
-        sizeMenuItem.setOnAction(event -> {
-            addFilterField(new FileSizeFilterField());
-        });
-
-        lastModifiedMenuItem.setOnAction(event -> {
-            addFilterField(new LastModifiedFilterField());
-        });
+        filenameMenuItem.setOnAction(event -> addFilterField(new FilenameFilterField()));
+        extensionMenuItem.setOnAction(event -> addFilterField(new FileExtensionFilterField()));
+        sizeMenuItem.setOnAction(event -> addFilterField(new FileSizeFilterField()));
+        lastModifiedMenuItem.setOnAction(event -> addFilterField(new LastModifiedFilterField()));
     }
 
     private void addFilterField(FilterField field) {
