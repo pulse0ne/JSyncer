@@ -52,6 +52,12 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
+/**
+ * JSyncerController class
+ * 
+ * @author Tyler Snedigar
+ * @version 1.0
+ */
 public class JSyncerController {
     @FXML
     private VBox rootVBox;
@@ -82,6 +88,9 @@ public class JSyncerController {
 
     @FXML
     private ChoiceBox<String> chunkSizeChoiceBox;
+
+    @FXML
+    private CheckBox deleteEmptyCheckBox;
 
     @FXML
     private TitledPane filtersTitledPane;
@@ -159,22 +168,9 @@ public class JSyncerController {
         sourceBrowseButton.setOnAction(e -> showFileBrowser("Source", sourceTextField));
         targetBrowseButton.setOnAction(e -> showFileBrowser("Target", targetTextField));
 
+        syncButton.setDisable(true);
         syncButton.setOnAction(e -> {
-            final long chunkSize = chunkSizeMap.get(chunkSizeChoiceBox.getSelectionModel().getSelectedItem());
-            final boolean delete = deleteUnmatchedCheckBox.isSelected();
-            final boolean smartCopy = smartCopyCheckBox.isSelected();
-            final boolean matchAllIncl = includeChoiceBox.getSelectionModel().getSelectedItem().equalsIgnoreCase("All");
-            final boolean matchAllExcl = excludeChoiceBox.getSelectionModel().getSelectedItem().equalsIgnoreCase("All");
-            final List<SyncFilter> includeFilters = collectFilters(f -> f.isInclusive());
-            final List<SyncFilter> excludeFilters = collectFilters(f -> !f.isInclusive());
-
-            final SyncOptions opts;
-            final SyncOptionsBuilder builder = new SyncOptionsBuilder();
-            builder.chunkSize(chunkSize).deleteUnmatchedTargets(delete).smartCopy(smartCopy);
-            builder.setInclusionFilters(includeFilters).setExclusionFilters(excludeFilters);
-            builder.matchAllInclusionFilters(matchAllIncl).matchAllExclusionFilters(matchAllExcl);
-
-            opts = builder.build();
+            final SyncOptions opts = getUserSelectedOptions();
 
             fileGridPane.setDisable(true);
             optionsTitledPane.setDisable(true);
@@ -193,6 +189,7 @@ public class JSyncerController {
                         }
                     }));
 
+                    // TODO: results dialog
                     System.out.println(results);
                 } catch (IOException x) {
                     // TODO: handle exceptions
@@ -207,6 +204,25 @@ public class JSyncerController {
         });
     }
 
+    private SyncOptions getUserSelectedOptions() {
+        final long chunkSize = chunkSizeMap.get(chunkSizeChoiceBox.getSelectionModel().getSelectedItem());
+        final boolean delete = deleteUnmatchedCheckBox.isSelected();
+        final boolean empty = deleteEmptyCheckBox.isSelected();
+        final boolean smartCopy = smartCopyCheckBox.isSelected();
+        final boolean matchAllIncl = includeChoiceBox.getSelectionModel().getSelectedItem().equalsIgnoreCase("All");
+        final boolean matchAllExcl = excludeChoiceBox.getSelectionModel().getSelectedItem().equalsIgnoreCase("All");
+        final List<SyncFilter> includeFilters = collectFilters(f -> f.isInclusive());
+        final List<SyncFilter> excludeFilters = collectFilters(f -> !f.isInclusive());
+
+        final SyncOptionsBuilder builder = new SyncOptionsBuilder();
+        builder.deleteUnmatchedTargets(delete).deleteEmptyTargetDirectories(empty);
+        builder.chunkSize(chunkSize).smartCopy(smartCopy);
+        builder.setInclusionFilters(includeFilters).setExclusionFilters(excludeFilters);
+        builder.matchAllInclusionFilters(matchAllIncl).matchAllExclusionFilters(matchAllExcl);
+
+        return builder.build();
+    }
+
     private List<SyncFilter> collectFilters(Predicate<? super FilterField> test) {
         return filterFields.stream().filter(test)
                 .map((Function<? super FilterField, ? extends SyncFilter>) f -> f.getFilter())
@@ -218,6 +234,10 @@ public class JSyncerController {
     }
 
     private void configureTextFields() {
+        sourceTextField.textProperty().isNotEmpty().and(targetTextField.textProperty().isNotEmpty())
+                .addListener((ob, ov, nv) -> {
+                    syncButton.setDisable(!nv);
+                });
     }
 
     private void configureChoiceBox() {

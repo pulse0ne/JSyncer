@@ -82,7 +82,7 @@
                   <RowConstraints vgrow="SOMETIMES" />
                </rowConstraints>
                <children>
-                  <CheckBox fx:id="deleteUnmatchedCheckBox" mnemonicParsing="false" selected="true" text="Delete Unmatched">
+                  <CheckBox fx:id="smartCopyCheckBox" mnemonicParsing="false" selected="true" text="Smart Copy">
                      <GridPane.margin>
                         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                      </GridPane.margin>
@@ -90,7 +90,10 @@
                         <Font size="11.0" />
                      </font>
                   </CheckBox>
-                  <CheckBox fx:id="smartCopyCheckBox" mnemonicParsing="false" selected="true" text="Smart Copy" GridPane.columnIndex="1">
+                  <CheckBox fx:id="deleteUnmatchedCheckBox" mnemonicParsing="false" selected="true" text="Delete Unmatched" GridPane.columnIndex="1">
+                     <GridPane.margin>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </GridPane.margin>
                      <font>
                         <Font size="11.0" />
                      </font>
@@ -108,6 +111,14 @@
                         <ChoiceBox fx:id="chunkSizeChoiceBox" style="-fx-font-size: 11.0;" />
                      </children>
                   </HBox>
+                  <CheckBox fx:id="deleteEmptyCheckBox" mnemonicParsing="false" selected="true" text="Delete Empty Dirs" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                     <GridPane.margin>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </GridPane.margin>
+                     <font>
+                        <Font size="11.0" />
+                     </font>
+                  </CheckBox>
                   <TitledPane fx:id="filtersTitledPane" animated="false" expanded="false" text="Filters" GridPane.columnSpan="2147483647" GridPane.rowIndex="2">
                     <content>
                         <VBox fx:id="filtersVBox" spacing="5.0">

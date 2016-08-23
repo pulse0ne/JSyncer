@@ -37,12 +37,6 @@ import javafx.util.Callback;
  */
 public class LastModifiedFilterField extends FilterField {
 
-    private static final long SECONDS = 1000L;
-
-    private static final long MINUTES = SECONDS * 60L;
-
-    private static final long HOURS = MINUTES * 60L;
-
     private final DatePicker fromPicker;
 
     private final DatePicker toPicker;
@@ -71,6 +65,11 @@ public class LastModifiedFilterField extends FilterField {
 
         fromPicker.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
         toPicker.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
+
+        fromSpinner.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
+        fromSpinner.setPrefWidth(JSyncerConstants.CONTROL_WIDTH);
+        toSpinner.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
+        toSpinner.setPrefWidth(JSyncerConstants.CONTROL_WIDTH);
 
         final Label fromLabel = new Label("From");
         fromLabel.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
@@ -103,7 +102,7 @@ public class LastModifiedFilterField extends FilterField {
     private long getTime(DatePicker picker, TimeSpinner spinner) {
         long time = 0L;
         time = picker.getValue().toEpochDay();
-        time += (spinner.getSecond() * SECONDS) + (spinner.getMinute() * MINUTES) + (spinner.getHour() * HOURS);
+        time += spinner.getValue().toNanoOfDay();
         return time;
     }
 
@@ -138,7 +137,7 @@ public class LastModifiedFilterField extends FilterField {
             }
         });
 
-        fromPicker.setMaxWidth(100.0);
-        toPicker.setMaxWidth(100.0);
+        fromPicker.setPrefWidth(JSyncerConstants.CONTROL_WIDTH);
+        toPicker.setPrefWidth(JSyncerConstants.CONTROL_WIDTH);
     }
 }

@@ -114,6 +114,9 @@ public class FileSizeFilterField extends FilterField {
         upperField.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
         lowerChoiceBox.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
         upperChoiceBox.setStyle(JSyncerConstants.FONT_SIZE_STYLE);
+
+        lowerField.setPrefWidth(JSyncerConstants.CONTROL_WIDTH / 2.0);
+        upperField.setPrefWidth(JSyncerConstants.CONTROL_WIDTH / 2.0);
     }
 
     private long getSize(TextField field, ChoiceBox<FileSizeEnum> size) {
